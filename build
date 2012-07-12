@@ -2,7 +2,8 @@ case "$1" in
 
 # Compile and Run
 run) ./build build
-     ./caves
+     RETVAL=$?
+     [ $RETVAL -eq 0 ] && ./caves
      ;;
 # Compile Sources
 build) echo "compile"
