@@ -1,0 +1,20 @@
+case "$1" in
+
+# Compile and Run
+run) ./build build
+     echo "run"
+     ;;
+# Compile Sources
+build) echo "compile"
+       ;;
+# Clean and Compile
+rebuild) ./build clean
+         ./build compile
+         ;;
+# Clean
+clean) echo "clean"
+       ;;
+
+*) echo "usage: $0 build/run/rebuild/clean"
+   ;;
+esac
