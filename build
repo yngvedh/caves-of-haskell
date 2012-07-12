@@ -2,10 +2,11 @@ case "$1" in
 
 # Compile and Run
 run) ./build build
-     echo "run"
+     ./caves
      ;;
 # Compile Sources
 build) echo "compile"
+       ghc --make *.hs -o caves
        ;;
 # Clean and Compile
 rebuild) ./build clean
@@ -13,6 +14,9 @@ rebuild) ./build clean
          ;;
 # Clean
 clean) echo "clean"
+       rm *.o
+       rm *.hi
+       rm caves
        ;;
 
 *) echo "usage: $0 build/run/rebuild/clean"
