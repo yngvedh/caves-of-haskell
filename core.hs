@@ -71,12 +71,12 @@ drawUI (Game (Size sizeX sizeY) world Win _) = do
 		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to restart, escape to quit."
 
 drawUI (Game (Size sizeX sizeY) world Lose _) = do
-		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Congratulations, you lose..."
+		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Too bad, you lose..."
 		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to restart, escape to quit."
 
 drawUI (Game (Size sizeX sizeY) world Play g) = do
 	drawMap (Game (Size sizeX sizeY) world Play g)
-	C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press enter to win, anything else to lose."
+	C.mvWAddStr C.stdScr (sizeY-1) 0 "Press enter to win, anything else to lose."
 
 
 updateUI game = do
