@@ -14,7 +14,7 @@ floor = Tile Floor '.' H.WhiteF
 bound = Tile Bound 'X' H.BlackF
 
 
-data World = World Size [[Tile]] deriving (Show)
+data World = World { worldSize :: Size, worldTiles :: [[Tile]] } deriving (Show)
 data Game = Game {
 	consoleSize :: Size,
 	world :: World,
@@ -87,9 +87,9 @@ updateGame (Game size w Start g) _                   = Game size w Play g
 updateGame (Game size w Play g)  (C.KeyChar '\ESC')  = Game size w Lose g
 updateGame (Game size w Play g)  _                   = Game size w Win g
 updateGame (Game size w Win g)   (C.KeyChar '\ESC')  = Game size w Quit g
-updateGame (Game size w Win g)   _                   = Game size w Start g
+updateGame (Game size w Win g)   _                   = newGame size (worldSize w) g
 updateGame (Game size w Lose g)  (C.KeyChar '\ESC')  = Game size w Quit g
-updateGame (Game size w Lose g)  _                   = Game size w Start g
+updateGame (Game size w Lose g)  _                   = newGame size (worldSize w) g
 updateGame game c                                    = game
 
 
