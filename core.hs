@@ -57,7 +57,7 @@ getTile w (Pos x y) = let
 	in if x < 0 || y < 0 || x >= dx || y >= dy then bound else tiles !! y !! x
 
 getAdjacentTiles w pos = map (\f -> getTile w $ f pos) [dirN, dirNE, dirE, dirSE, dirS, dirSW, dirW, dirNW]
-smoothTile' t a = if (length . (filter (wall ==)) $ t:a) >= 5 then wall else floor
+smoothTile' t a = if (length . (filter (floor ==)) $ t:a) >= 5 then floor else wall
 smoothTile w p = smoothTile' (getTile w p) (getAdjacentTiles w p)
 smoothMap w = let
 	tiles = worldTiles w
