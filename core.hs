@@ -1,7 +1,8 @@
 import Prelude hiding (floor)
-import System.Random (mkStdGen, randomR, StdGen, RandomGen, Random)
+import System.Random (mkStdGen, randomR, getStdGen, StdGen, RandomGen, Random)
 import UI.HSCurses.Curses as C
 import UI.HSCurses.CursesHelper as H
+import Data.Time.Clock (getCurrentTime)
 
 data Size = Size Int Int deriving (Show, Eq)
 data Screen = Start | Play | Win | Lose | Quit deriving (Show)
@@ -104,6 +105,7 @@ main = do
 	H.start
 	C.cursSet CursorInvisible
 	(sizeY, sizeX) <- C.scrSize
-	c <- C.getCh
-	runGame $ newGame (Size sizeX sizeY) (Size 160 50) (mkStdGen 4)
+	g <- getStdGen
+	runGame $ newGame (Size sizeX sizeY) (Size 160 50) g
 	H.end
+
