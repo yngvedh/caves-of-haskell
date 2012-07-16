@@ -6,7 +6,11 @@ import Data.Time.Clock (getCurrentTime)
 
 data Pos = Pos Int Int
 data Size = Size Int Int deriving (Show, Eq)
-data Screen = Start | Play | Win | Lose | Quit deriving (Show)
+data Screen = Start
+			| Play World
+			| Win
+			| Lose
+			| Quit deriving (Show)
 data TileKind = Wall | Floor | Bound deriving (Show, Eq)
 data Tile = Tile { kind :: TileKind, glyph :: Char, color :: H.ForegroundColor } deriving (Show, Eq)
 
@@ -18,7 +22,6 @@ bound = Tile Bound 'X' H.BlackF
 data World = World { worldSize :: Size, worldTiles :: [[Tile]] } deriving (Show)
 data Game = Game {
 	consoleSize :: Size,
-	world :: World,
 	screen :: Screen, 
 	gen :: StdGen}
 	deriving (Show)
@@ -73,7 +76,7 @@ drawTiles [] _ = do return()
 
 mapSection tiles x y dx dy = take dy $ map (take dx) tiles
 
-drawMap (Game (Size cx cy) (World size tiles) _ _) = let
+drawMap (Size cx cy) (World size tiles) = let
 	glyphs = reverse $ map (map glyph) (mapSection tiles 0 0 cx (cy-1))
 	in do drawTiles glyphs 0
 
@@ -81,44 +84,43 @@ worldRandoms w n ls = (w {gen = g'}, l) where (l, g') = nRandomLs n ls (gen w)
 worldRandom w ls = (w {gen = g'}, l) where (l:_, g') = nRandomLs 1 ls (gen w)
 
 newWorld size g = (World size m, g') where (m, g') = (newMap size g)
-newGame conSize size g = Game conSize w Start g' where (w, g') = newWorld size g
 
 drawUI :: Game -> IO()
-drawUI (Game (Size sizeX sizeY) world Start _) = do
+drawUI (Game (Size sizeX sizeY) Start _) = do
 		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Welcome to Caves of Haskell"
 		C.mvWAddStr C.stdScr (sizeY `div` 2) (sizeX `div` 2 - 13)     ":-----------=o=-----------:"
 		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to start..."
 
-drawUI (Game (Size sizeX sizeY) world Win _) = do
+drawUI (Game (Size sizeX sizeY) Win _) = do
 		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Congratulations, you win!"
 		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to restart, escape to quit."
 
-drawUI (Game (Size sizeX sizeY) world Lose _) = do
+drawUI (Game (Size sizeX sizeY) Lose _) = do
 		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Too bad, you lose..."
 		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to restart, escape to quit."
 
-drawUI (Game (Size sizeX sizeY) world Play g) = do
-	drawMap (Game (Size sizeX sizeY) world Play g)
-	C.mvWAddStr C.stdScr (sizeY-1) 0 "Press enter to win, s to smooth the map or anything else to lose."
+drawUI (Game (Size dx dy) (Play world) _) = do
+	drawMap (Size dx dy) world
+	C.mvWAddStr C.stdScr (dy-1) 0 "Press enter to win, s to smooth the map or anything else to lose."
 
 
 updateUI game = do
 	C.erase
 	drawUI game
 
-updateGame (Game size w Start g) _                   = Game size w Play g
-updateGame (Game size w Play g)  (C.KeyChar '\ESC')  = Game size w Lose g
-updateGame (Game size w Play g)  (C.KeyChar 's')     = Game size (smoothMap w) Play g
-updateGame (Game size w Play g)  _                   = Game size w Win g
-updateGame (Game size w Win g)   (C.KeyChar '\ESC')  = Game size w Quit g
-updateGame (Game size w Win g)   _                   = newGame size (worldSize w) g
-updateGame (Game size w Lose g)  (C.KeyChar '\ESC')  = Game size w Quit g
-updateGame (Game size w Lose g)  _                   = newGame size (worldSize w) g
-updateGame game c                                    = game
+updateGame (Game size Start g) _                       	= Game size (Play w) g' where (w, g') = newWorld (Size 160 50) g
+updateGame (Game size (Play w) g)  (C.KeyChar '\ESC')  	= Game size Lose g
+updateGame (Game size (Play w) g)  (C.KeyChar 's')     	= Game size (Play $ w') g where w' = smoothMap w
+updateGame (Game size (Play _) g)  _                    = Game size Win g
+updateGame (Game size Win  g)  (C.KeyChar '\ESC')  		= Game size Quit g
+updateGame (Game size Win  g)  _                   		= Game size Start g
+updateGame (Game size Lose g)  (C.KeyChar '\ESC')  		= Game size Quit g
+updateGame (Game size Lose g)  _                   		= Game size Start g
+updateGame game _                                    	= game
 
 
 runGame :: Game -> IO()
-runGame (Game _ _ Quit _) = do return ()
+runGame (Game _ Quit _) = do return ()
 runGame game = do
 	updateUI game
 	C.refresh
@@ -130,6 +132,6 @@ main = do
 	C.cursSet CursorInvisible
 	(sizeY, sizeX) <- C.scrSize
 	g <- getStdGen
-	runGame $ newGame (Size sizeX sizeY) (Size 160 50) g
+	runGame $ Game (Size sizeX sizeY) Start g
 	H.end
 
