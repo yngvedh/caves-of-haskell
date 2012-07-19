@@ -4,10 +4,10 @@ import UI.HSCurses.Curses as C
 import UI.HSCurses.CursesHelper as H
 import Data.Time.Clock (getCurrentTime)
 
-data Pos = Pos Int Int
+data Pos = Pos Int Int deriving (Show, Eq)
 data Size = Size Int Int deriving (Show, Eq)
 data Screen = Start
-			| Play World
+			| Play { world :: World, center :: Pos }
 			| Win
 			| Lose
 			| Quit deriving (Show)
@@ -64,26 +64,35 @@ smoothTile' t a = if (length . (filter (floor ==)) $ t:a) >= 5 then floor else w
 smoothTile w p = smoothTile' (getTile w p) (getAdjacentTiles w p)
 smoothMap w = let
 	tiles = worldTiles w
-	(Size cx cy) = worldSize w
-	in World (Size cx cy) [[smoothTile w $ Pos x y
-	     | x <- [0..(cx-1)]]
-		 | y <- [0..(cy-1)]]
+	(Size wx wy) = worldSize w
+	in World (Size wx wy) [[smoothTile w $ Pos x y
+	     | x <- [0..(wx-1)]]
+		 | y <- [0..(wy-1)]]
 
 drawTiles (row:rows) y = do
 	C.mvWAddStr C.stdScr y 0 row
 	drawTiles rows (y+1)
 drawTiles [] _ = do return()
 
-mapSection tiles x y dx dy = take dy $ map (take dx) tiles
+mapSection tiles x y dx dy = (take dy) . (drop y) $ map ((take dx) . (drop x)) tiles
 
-drawMap (Size cx cy) (World size tiles) = let
-	glyphs = reverse $ map (map glyph) (mapSection tiles 0 0 cx (cy-1))
+upperLeft (Pos cx cy) (Size sx sy) = Pos (cx - sx `div` 2) (cy - sy `div` 2)
+drawMap center screenSize (World (Size wx wy) tiles) = let
+	(Pos x0 y0) = upperLeft center screenSize
+	(Size sx sy) = screenSize
+	x0' = max 0 $ min (wx - sx) x0 -- clamp x,y position
+	y0' = max 0 $ min (wy - sy) y0
+	glyphs = reverse $ map (map glyph) (mapSection tiles x0' y0' sx (sy-1))
 	in do drawTiles glyphs 0
 
 worldRandoms w n ls = (w {gen = g'}, l) where (l, g') = nRandomLs n ls (gen w)
 worldRandom w ls = (w {gen = g'}, l) where (l:_, g') = nRandomLs 1 ls (gen w)
 
 newWorld size g = (World size m, g') where (m, g') = (newMap size g)
+newPlay :: RandomGen g => Size -> g -> (Screen, g)
+newPlay (Size wx wy) g = ((Play w c), g') where 
+		(w, g') = newWorld (Size wx wy) g
+		c = Pos (wx `div` 2) (wy `div` 2)
 
 drawUI :: Game -> IO()
 drawUI (Game (Size sizeX sizeY) Start _) = do
@@ -99,8 +108,8 @@ drawUI (Game (Size sizeX sizeY) Lose _) = do
 		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Too bad, you lose..."
 		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to restart, escape to quit."
 
-drawUI (Game (Size dx dy) (Play world) _) = do
-	drawMap (Size dx dy) world
+drawUI (Game (Size dx dy) (Play world center) _) = do
+	drawMap center (Size dx dy) world
 	C.mvWAddStr C.stdScr (dy-1) 0 "Press enter to win, s to smooth the map or anything else to lose."
 
 
@@ -108,10 +117,14 @@ updateUI game = do
 	C.erase
 	drawUI game
 
-updateGame (Game size Start g) _                       	= Game size (Play w) g' where (w, g') = newWorld (Size 160 50) g
-updateGame (Game size (Play w) g)  (C.KeyChar '\ESC')  	= Game size Lose g
-updateGame (Game size (Play w) g)  (C.KeyChar 's')     	= Game size (Play $ w') g where w' = smoothMap w
-updateGame (Game size (Play _) g)  _                    = Game size Win g
+updateGame (Game size Start g) _                       	= Game size p g' where (p, g') = newPlay (Size 160 50) g
+updateGame (Game size (Play w c) g)  (C.KeyChar '\ESC')	= Game size Lose g
+updateGame (Game size (Play w c) g)  (C.KeyChar 's')   	= Game size (Play w' c) g where w' = smoothMap w
+updateGame (Game size (Play w c) g)  (C.KeyUp)			= Game size (Play w c') g where c' = dirN c
+updateGame (Game size (Play w c) g)  (C.KeyDown)		= Game size (Play w c') g where c' = dirS c
+updateGame (Game size (Play w c) g)  (C.KeyLeft)		= Game size (Play w c') g where c' = dirW c
+updateGame (Game size (Play w c) g)  (C.KeyRight)		= Game size (Play w c') g where c' = dirE c
+updateGame (Game size (Play _ _) g)  _                  = Game size Win g
 updateGame (Game size Win  g)  (C.KeyChar '\ESC')  		= Game size Quit g
 updateGame (Game size Win  g)  _                   		= Game size Start g
 updateGame (Game size Lose g)  (C.KeyChar '\ESC')  		= Game size Quit g
