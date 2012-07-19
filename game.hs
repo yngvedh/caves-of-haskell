@@ -5,11 +5,13 @@ module Game (
 		getTile, getAdjacentTiles, smoothMap,
 		mapSection,
 		glyph, color,
-		worldSize, worldTiles) where
+		worldSize, worldTiles,
+		newWorld) where
 
 	import Prelude hiding (floor)
 	import Common
 	import Console (Color(White, Black, Red))
+	import System.Random (randomR, RandomGen)
 
 	data TileKind = Wall | Floor | Bound deriving (Show, Eq)
 	data Tile = Tile { kind :: TileKind, glyph :: Char, color :: Color } deriving (Show, Eq)
@@ -45,3 +47,14 @@ module Game (
 			 | y <- [0..(wy-1)]]
 
 	mapSection tiles x y dx dy = (take dy) . (drop y) $ map ((take dx) . (drop x)) tiles
+
+	newRow :: RandomGen g => Int -> g -> ([Tile], g)
+	newRow dx g = nRandomLs dx [floor, wall] g
+
+	newMap :: RandomGen g => Size -> g -> ([[Tile]], g)
+	newMap size g = newMap' size g where
+		newMap' (Size dx dy) g = if dy == 0 then ([], g) else (row:rows, g'') where
+			(row , g' ) = newRow dx g
+			(rows, g'') = newMap' (Size dx (dy-1)) g'
+
+	newWorld size g = (World size m, g') where (m, g') = (newMap size g)

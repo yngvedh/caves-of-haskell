@@ -1,6 +1,5 @@
 import Prelude hiding (floor)
-import System.Random (mkStdGen, randomR, getStdGen, StdGen, RandomGen, Random)
-import Data.Time.Clock (getCurrentTime)
+import System.Random (getStdGen, StdGen, RandomGen)
 import Control.Monad (when)
 import Common
 import Frame
@@ -12,38 +11,10 @@ data Game = Game {
 	screen :: Screen, 
 	gen :: StdGen}
 
-nRandomRs :: RandomGen g => Int -> (Int,Int) -> g -> ([Int], g)
-nRandomRs 0 r g = ([], g)
-nRandomRs num r g = let
-	(n,  g')  = randomR r g
-	(ns, g'') = nRandomRs (num-1) r g'
-	in (n:ns, g'')
-
-nRandomLs :: RandomGen g => Int -> [a] -> g -> ([a], g)
-nRandomLs n l g = (map (l !!) ns, g') where (ns, g') = nRandomRs n (0, (length l) - 1) g
-
-newRow :: RandomGen g => Int -> g -> ([Tile], g)
-newRow dx g = nRandomLs dx [floor, wall] g
-
-newMap :: RandomGen g => Size -> g -> ([[Tile]], g)
-newMap size g = newMap' size g where
-	newMap' (Size dx dy) g = if dy == 0 then ([], g) else (row:rows, g'') where
-		(row , g' ) = newRow dx g
-		(rows, g'') = newMap' (Size dx (dy-1)) g'
-
 drawTiles con (row:rows) y = do
 	Con.drawString con (Pos 0 y) row
 	drawTiles con rows (y-1)
 drawTiles _ [] _ = do return()
-
-
-upperLeft (Pos cx cy) (Size sx sy) = Pos (cx - sx `div` 2) (cy - sy `div` 2)
-clamp bx dx x = max bx $ min (dx + bx) x
-clampPos (Pos bx by) (Size dx dy) (Pos x y) = Pos (clamp bx (dx-1) x) (clamp by (dy-1) y)
-
-moveRectToFit (Pos x y) (Size dx dy) (Size boundX boundY) = let
-	pos0 = upperLeft (Pos x y) (Size dx dy)
-	in clampPos (Pos 0 0)  (Size (boundX - dx) (boundY - dy)) pos0
 
 drawCrosshair con (Pos x y) worldSize = let
 	(Size sx sy) = consoleSize con
@@ -58,10 +29,6 @@ drawMap con center (World (Size wx wy) tiles) = let
 	glyphs = reverse $ map (map glyph) (mapSection tiles x0 y0 sx $ sy - 1)
 	in do drawTiles con glyphs $ sy-1
 
-worldRandoms w n ls = (w {gen = g'}, l) where (l, g') = nRandomLs n ls (gen w)
-worldRandom w ls = (w {gen = g'}, l) where (l:_, g') = nRandomLs 1 ls (gen w)
-
-newWorld size g = (World size m, g') where (m, g') = (newMap size g)
 newPlay :: RandomGen g => Size -> g -> (Screen, g)
 newPlay (Size wx wy) g = ((Play w c), g') where 
 		(w, g') = newWorld (Size wx wy) g
