@@ -15,7 +15,7 @@ module Common (Pos(Pos), Size(Size), zeroPos,
 
 	moveRectToFit (Pos x y) (Size dx dy) (Size boundX boundY) = let
 		pos0 = upperLeft (Pos x y) (Size dx dy)
-		in clampPos (Pos 0 0)  (Size (boundX - dx) (boundY - dy)) pos0
+		in clampPos (Pos 0 0)  (Size (boundX - dx + 1) (boundY - dy + 2)) pos0
 
 
 	nRandomRs :: RandomGen g => Int -> (Int,Int) -> g -> ([Int], g)
