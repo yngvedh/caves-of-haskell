@@ -7,7 +7,7 @@ import Game
 import Console as Con
 
 data Game = Game {
-	console :: Con.Console,
+	console :: Console,
 	screen :: Screen, 
 	gen :: StdGen}
 
@@ -19,8 +19,8 @@ drawTiles _ [] _ = do return()
 drawCrosshair con (Pos x y) worldSize = let
 	(Size sx sy) = consoleSize con
 	(Pos x0 y0) = moveRectToFit (Pos x y) (Size sx sy) worldSize
-	(Pos x' y') = Pos (x - x0) (y - y0)
-	in do when (x >= 0 && x' < sx && y' >= 0 && y' < (sy - 1)) $ Con.drawString con (Pos x' y') "X"
+	(Pos x' y') = Pos (x - x0) (y - y0 + 1)
+	in do when (x >= 0 && x' < sx && y' > 0 && y' < sy) $ Con.drawString con (Pos x' y') "X"
 
 drawMap con center (World (Size wx wy) tiles) = let
 	conSize = consoleSize con
@@ -65,18 +65,18 @@ updateUI game = do
 	Con.clearScreen
 	drawUI game
 
-updateGame (Game size Start g) _                       		= Game size p g' where (p, g') = newPlay (Size 160 50) g
-updateGame (Game size (Play w c) g)  (Con.KeyChar '\ESC')	= Game size Lose g
-updateGame (Game size (Play w c) g)  (Con.KeyChar 's')   	= Game size (Play w' c) g where w' = smoothMap w
-updateGame (Game size (Play w c) g)  (Con.KeyUp)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirN c
-updateGame (Game size (Play w c) g)  (Con.KeyDown)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirS c
-updateGame (Game size (Play w c) g)  (Con.KeyLeft)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirW c
-updateGame (Game size (Play w c) g)  (Con.KeyRight)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirE c
+updateGame (Game size Start g) _                       		= Game size p g' where (p, g') = newPlay (Size 100 20) g
+updateGame (Game size (Play w c) g) (Con.KeyChar '\ESC')	= Game size Lose g
+updateGame (Game size (Play w c) g) (Con.KeyChar 's')   	= Game size (Play w' c) g where w' = smoothMap w
+updateGame (Game size (Play w c) g) (Con.KeyUp)				= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirN c
+updateGame (Game size (Play w c) g) (Con.KeyDown)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirS c
+updateGame (Game size (Play w c) g) (Con.KeyLeft)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirW c
+updateGame (Game size (Play w c) g) (Con.KeyRight)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirE c
 updateGame (Game size (Play _ _) g)  _                  	= Game size Win g
-updateGame (Game size Win  g)  (Con.KeyChar '\ESC')  		= Game size Quit g
-updateGame (Game size Win  g)  _                   			= Game size Start g
-updateGame (Game size Lose g)  (Con.KeyChar '\ESC')  		= Game size Quit g
-updateGame (Game size Lose g)  _                   			= Game size Start g
+updateGame (Game size Win  g) (Con.KeyChar '\ESC')  		= Game size Quit g
+updateGame (Game size Win  g) _                   			= Game size Start g
+updateGame (Game size Lose g) (Con.KeyChar '\ESC')  		= Game size Quit g
+updateGame (Game size Lose g) _                   			= Game size Start g
 updateGame game _                                    		= game
 
 

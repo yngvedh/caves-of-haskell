@@ -6,7 +6,7 @@ module Game (
 		mapSection,
 		glyph, color,
 		worldSize, worldTiles,
-		newWorld) where
+		newWorld, testWorld) where
 
 	import Prelude hiding (floor)
 	import Common
@@ -58,3 +58,5 @@ module Game (
 			(rows, g'') = newMap' (Size dx (dy-1)) g'
 
 	newWorld size g = (World size m, g') where (m, g') = (newMap size g)
+	testWorld (Size x y) g = (World (Size x y) tiles, g) where
+		tiles = (replicate x wall) : (replicate (y-2) (wall : (replicate (x-2) floor) ++ [wall])) ++ [replicate x wall]

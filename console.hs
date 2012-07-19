@@ -3,7 +3,7 @@ module Console (Console(Console), Console.Color(White, Black, Red),
 				clearScreen, updateScreen,
 				fgColor, drawString,
 				getKeyPress,
-				Key(KeyUp, KeyDown, KeyRight, KeyLeft, KeyChar)) where
+				Key(KeyUp, KeyDown, KeyRight, KeyLeft, KeyChar), escapeKey, enterKey) where
 	import UI.HSCurses.Curses as C
 	import UI.HSCurses.CursesHelper as H
 	import Common (Pos(Pos), Size(Size))
