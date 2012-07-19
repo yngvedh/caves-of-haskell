@@ -38,22 +38,22 @@ drawUI :: Game -> IO()
 drawUI (Game con Start _) = let
 		(Size sizeX sizeY) = consoleSize con
 		in do
-			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 - 1))	"Welcome to Caves of Haskell"
+			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 + 1))	"Welcome to Caves of Haskell"
 			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2))		":-----------=o=-----------:"
-			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 + 3))	"Press any key to start..."
+			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 - 3))	"Press any key to start..."
 			Con.drawString con zeroPos (show (Size sizeX sizeY))
 
 drawUI (Game con Win _) = let
 		(Size sizeX sizeY) = consoleSize con
 		in do
-			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 - 1)) "Congratulations, you win!"
-			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 + 3)) "Press any key to restart, escape to quit."
+			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 + 1)) "Congratulations, you win!"
+			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 - 3)) "Press any key to restart, escape to quit."
 
 drawUI (Game con Lose _) = let
 		(Size sizeX sizeY) = consoleSize con
 		in do
-			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 - 1)) "Too bad, you lose..."
-			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 + 3)) "Press any key to restart, escape to quit."
+			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 + 1)) "Too bad, you lose..."
+			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 - 3)) "Press any key to restart, escape to quit."
 
 drawUI (Game con (Play world center) _) = do
 	drawMap con center world
