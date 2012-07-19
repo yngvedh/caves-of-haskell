@@ -3,8 +3,10 @@ import System.Random (mkStdGen, randomR, getStdGen, StdGen, RandomGen, Random)
 import UI.HSCurses.Curses as C
 import UI.HSCurses.CursesHelper as H
 import Data.Time.Clock (getCurrentTime)
+import Control.Monad (when)
 
 data Pos = Pos Int Int deriving (Show, Eq)
+zeroPos = Pos 0 0
 data Size = Size Int Int deriving (Show, Eq)
 data Screen = Start
 			| Play { world :: World, center :: Pos }
@@ -74,15 +76,27 @@ drawTiles (row:rows) y = do
 	drawTiles rows (y+1)
 drawTiles [] _ = do return()
 
+
 mapSection tiles x y dx dy = (take dy) . (drop y) $ map ((take dx) . (drop x)) tiles
 
 upperLeft (Pos cx cy) (Size sx sy) = Pos (cx - sx `div` 2) (cy - sy `div` 2)
+clamp bx dx x = max bx $ min (dx + bx) x
+clampPos (Pos bx by) (Size dx dy) (Pos x y) = Pos (clamp bx (dx-1) x) (clamp by (dy-1) y)
+
+moveRectToFit (Pos x y) (Size dx dy) (Size boundX boundY) = let
+	pos0 = upperLeft (Pos x y) (Size dx dy)
+	in clampPos (Pos 0 0)  (Size (boundX - dx) (boundY - dy)) pos0
+
+drawCrosshair (Pos x y) (Size sx sy) worldSize = let
+	(Pos x0 y0) = moveRectToFit (Pos x y) (Size sx sy) worldSize
+	(Pos x' y') = Pos (x - x0) (y - y0)
+	(Pos x'' y'') = Pos x' $ sy - y'
+	in do when (x'' >= 0 && x'' < sx && y'' >= 0 && y'' < (sy - 1)) $ C.mvWAddStr stdScr y'' x'' "X"
+
 drawMap center screenSize (World (Size wx wy) tiles) = let
-	(Pos x0 y0) = upperLeft center screenSize
+	(Pos x0 y0) = moveRectToFit center screenSize (Size wx wy)
 	(Size sx sy) = screenSize
-	x0' = max 0 $ min (wx - sx) x0 -- clamp x,y position
-	y0' = max 0 $ min (wy - sy) y0
-	glyphs = reverse $ map (map glyph) (mapSection tiles x0' y0' sx (sy-1))
+	glyphs = reverse $ map (map glyph) (mapSection tiles x0 y0 sx $ sy - 1)
 	in do drawTiles glyphs 0
 
 worldRandoms w n ls = (w {gen = g'}, l) where (l, g') = nRandomLs n ls (gen w)
@@ -110,7 +124,8 @@ drawUI (Game (Size sizeX sizeY) Lose _) = do
 
 drawUI (Game (Size dx dy) (Play world center) _) = do
 	drawMap center (Size dx dy) world
-	C.mvWAddStr C.stdScr (dy-1) 0 "Press enter to win, s to smooth the map or anything else to lose."
+	drawCrosshair center (Size dx dy) (worldSize world) 
+	C.mvWAddStr C.stdScr (dy-1) 0 $ show center ++ " -> " ++ show (moveRectToFit center (Size dx dy) (worldSize world))
 
 
 updateUI game = do
@@ -120,10 +135,10 @@ updateUI game = do
 updateGame (Game size Start g) _                       	= Game size p g' where (p, g') = newPlay (Size 160 50) g
 updateGame (Game size (Play w c) g)  (C.KeyChar '\ESC')	= Game size Lose g
 updateGame (Game size (Play w c) g)  (C.KeyChar 's')   	= Game size (Play w' c) g where w' = smoothMap w
-updateGame (Game size (Play w c) g)  (C.KeyUp)			= Game size (Play w c') g where c' = dirN c
-updateGame (Game size (Play w c) g)  (C.KeyDown)		= Game size (Play w c') g where c' = dirS c
-updateGame (Game size (Play w c) g)  (C.KeyLeft)		= Game size (Play w c') g where c' = dirW c
-updateGame (Game size (Play w c) g)  (C.KeyRight)		= Game size (Play w c') g where c' = dirE c
+updateGame (Game size (Play w c) g)  (C.KeyUp)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirN c
+updateGame (Game size (Play w c) g)  (C.KeyDown)		= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirS c
+updateGame (Game size (Play w c) g)  (C.KeyLeft)		= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirW c
+updateGame (Game size (Play w c) g)  (C.KeyRight)		= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirE c
 updateGame (Game size (Play _ _) g)  _                  = Game size Win g
 updateGame (Game size Win  g)  (C.KeyChar '\ESC')  		= Game size Quit g
 updateGame (Game size Win  g)  _                   		= Game size Start g
