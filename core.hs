@@ -1,32 +1,16 @@
 import Prelude hiding (floor)
 import System.Random (mkStdGen, randomR, getStdGen, StdGen, RandomGen, Random)
-import UI.HSCurses.Curses as C
-import UI.HSCurses.CursesHelper as H
 import Data.Time.Clock (getCurrentTime)
 import Control.Monad (when)
+import Common
+import Frame
+import Game
+import Console as Con
 
-data Pos = Pos Int Int deriving (Show, Eq)
-zeroPos = Pos 0 0
-data Size = Size Int Int deriving (Show, Eq)
-data Screen = Start
-			| Play { world :: World, center :: Pos }
-			| Win
-			| Lose
-			| Quit deriving (Show)
-data TileKind = Wall | Floor | Bound deriving (Show, Eq)
-data Tile = Tile { kind :: TileKind, glyph :: Char, color :: H.ForegroundColor } deriving (Show, Eq)
-
-wall  = Tile Wall  '#' H.WhiteF
-floor = Tile Floor '.' H.WhiteF
-bound = Tile Bound 'X' H.BlackF
-
-
-data World = World { worldSize :: Size, worldTiles :: [[Tile]] } deriving (Show)
 data Game = Game {
-	consoleSize :: Size,
+	console :: Con.Console,
 	screen :: Screen, 
 	gen :: StdGen}
-	deriving (Show)
 
 nRandomRs :: RandomGen g => Int -> (Int,Int) -> g -> ([Int], g)
 nRandomRs 0 r g = ([], g)
@@ -47,37 +31,11 @@ newMap size g = newMap' size g where
 		(row , g' ) = newRow dx g
 		(rows, g'') = newMap' (Size dx (dy-1)) g'
 
-dirN (Pos x y) = Pos x (y+1)
-dirS (Pos x y) = Pos x (y-1)
-dirW (Pos x y) = Pos (x-1) y
-dirE (Pos x y) = Pos (x+1) y
-dirNE = dirN . dirE
-dirNW = dirN . dirW
-dirSE = dirS . dirE
-dirSW = dirS . dirW
+drawTiles con (row:rows) y = do
+	Con.drawString con (Pos 0 y) row
+	drawTiles con rows (y-1)
+drawTiles _ [] _ = do return()
 
-getTile w (Pos x y) = let
-	tiles = worldTiles w
-	(Size dx dy) = worldSize w
-	in if x < 0 || y < 0 || x >= dx || y >= dy then bound else tiles !! y !! x
-
-getAdjacentTiles w pos = map (\f -> getTile w $ f pos) [dirN, dirNE, dirE, dirSE, dirS, dirSW, dirW, dirNW]
-smoothTile' t a = if (length . (filter (floor ==)) $ t:a) >= 5 then floor else wall
-smoothTile w p = smoothTile' (getTile w p) (getAdjacentTiles w p)
-smoothMap w = let
-	tiles = worldTiles w
-	(Size wx wy) = worldSize w
-	in World (Size wx wy) [[smoothTile w $ Pos x y
-	     | x <- [0..(wx-1)]]
-		 | y <- [0..(wy-1)]]
-
-drawTiles (row:rows) y = do
-	C.mvWAddStr C.stdScr y 0 row
-	drawTiles rows (y+1)
-drawTiles [] _ = do return()
-
-
-mapSection tiles x y dx dy = (take dy) . (drop y) $ map ((take dx) . (drop x)) tiles
 
 upperLeft (Pos cx cy) (Size sx sy) = Pos (cx - sx `div` 2) (cy - sy `div` 2)
 clamp bx dx x = max bx $ min (dx + bx) x
@@ -87,17 +45,18 @@ moveRectToFit (Pos x y) (Size dx dy) (Size boundX boundY) = let
 	pos0 = upperLeft (Pos x y) (Size dx dy)
 	in clampPos (Pos 0 0)  (Size (boundX - dx) (boundY - dy)) pos0
 
-drawCrosshair (Pos x y) (Size sx sy) worldSize = let
+drawCrosshair con (Pos x y) worldSize = let
+	(Size sx sy) = consoleSize con
 	(Pos x0 y0) = moveRectToFit (Pos x y) (Size sx sy) worldSize
 	(Pos x' y') = Pos (x - x0) (y - y0)
-	(Pos x'' y'') = Pos x' $ sy - y'
-	in do when (x'' >= 0 && x'' < sx && y'' >= 0 && y'' < (sy - 1)) $ C.mvWAddStr stdScr y'' x'' "X"
+	in do when (x >= 0 && x' < sx && y' >= 0 && y' < (sy - 1)) $ Con.drawString con (Pos x' y') "X"
 
-drawMap center screenSize (World (Size wx wy) tiles) = let
-	(Pos x0 y0) = moveRectToFit center screenSize (Size wx wy)
-	(Size sx sy) = screenSize
+drawMap con center (World (Size wx wy) tiles) = let
+	conSize = consoleSize con
+	(Pos x0 y0) = moveRectToFit center conSize (Size wx wy)
+	(Size sx sy) = conSize
 	glyphs = reverse $ map (map glyph) (mapSection tiles x0 y0 sx $ sy - 1)
-	in do drawTiles glyphs 0
+	in do drawTiles con glyphs $ sy-1
 
 worldRandoms w n ls = (w {gen = g'}, l) where (l, g') = nRandomLs n ls (gen w)
 worldRandom w ls = (w {gen = g'}, l) where (l:_, g') = nRandomLs 1 ls (gen w)
@@ -109,57 +68,63 @@ newPlay (Size wx wy) g = ((Play w c), g') where
 		c = Pos (wx `div` 2) (wy `div` 2)
 
 drawUI :: Game -> IO()
-drawUI (Game (Size sizeX sizeY) Start _) = do
-		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Welcome to Caves of Haskell"
-		C.mvWAddStr C.stdScr (sizeY `div` 2) (sizeX `div` 2 - 13)     ":-----------=o=-----------:"
-		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to start..."
+drawUI (Game con Start _) = let
+		(Size sizeX sizeY) = consoleSize con
+		in do
+			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 - 1))	"Welcome to Caves of Haskell"
+			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2))		":-----------=o=-----------:"
+			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 + 3))	"Press any key to start..."
+			Con.drawString con zeroPos (show (Size sizeX sizeY))
 
-drawUI (Game (Size sizeX sizeY) Win _) = do
-		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Congratulations, you win!"
-		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to restart, escape to quit."
+drawUI (Game con Win _) = let
+		(Size sizeX sizeY) = consoleSize con
+		in do
+			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 - 1)) "Congratulations, you win!"
+			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 + 3)) "Press any key to restart, escape to quit."
 
-drawUI (Game (Size sizeX sizeY) Lose _) = do
-		C.mvWAddStr C.stdScr (sizeY `div` 2 - 1) (sizeX `div` 2 - 13) "Too bad, you lose..."
-		C.mvWAddStr C.stdScr (sizeY `div` 2 + 3) (sizeX `div` 2 - 20) "Press any key to restart, escape to quit."
+drawUI (Game con Lose _) = let
+		(Size sizeX sizeY) = consoleSize con
+		in do
+			Con.drawString con (Pos (sizeX `div` 2 - 13) (sizeY `div` 2 - 1)) "Too bad, you lose..."
+			Con.drawString con (Pos (sizeX `div` 2 - 20) (sizeY `div` 2 + 3)) "Press any key to restart, escape to quit."
 
-drawUI (Game (Size dx dy) (Play world center) _) = do
-	drawMap center (Size dx dy) world
-	drawCrosshair center (Size dx dy) (worldSize world) 
-	C.mvWAddStr C.stdScr (dy-1) 0 $ show center ++ " -> " ++ show (moveRectToFit center (Size dx dy) (worldSize world))
+drawUI (Game con (Play world center) _) = do
+	drawMap con center world
+	drawCrosshair con center (worldSize world) 
+	Con.drawString con zeroPos $ show center ++ " -> " ++ show (moveRectToFit center (consoleSize con) (worldSize world))
 
 
 updateUI game = do
-	C.erase
+	Con.clearScreen
 	drawUI game
 
-updateGame (Game size Start g) _                       	= Game size p g' where (p, g') = newPlay (Size 160 50) g
-updateGame (Game size (Play w c) g)  (C.KeyChar '\ESC')	= Game size Lose g
-updateGame (Game size (Play w c) g)  (C.KeyChar 's')   	= Game size (Play w' c) g where w' = smoothMap w
-updateGame (Game size (Play w c) g)  (C.KeyUp)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirN c
-updateGame (Game size (Play w c) g)  (C.KeyDown)		= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirS c
-updateGame (Game size (Play w c) g)  (C.KeyLeft)		= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirW c
-updateGame (Game size (Play w c) g)  (C.KeyRight)		= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirE c
-updateGame (Game size (Play _ _) g)  _                  = Game size Win g
-updateGame (Game size Win  g)  (C.KeyChar '\ESC')  		= Game size Quit g
-updateGame (Game size Win  g)  _                   		= Game size Start g
-updateGame (Game size Lose g)  (C.KeyChar '\ESC')  		= Game size Quit g
-updateGame (Game size Lose g)  _                   		= Game size Start g
-updateGame game _                                    	= game
+updateGame (Game size Start g) _                       		= Game size p g' where (p, g') = newPlay (Size 160 50) g
+updateGame (Game size (Play w c) g)  (Con.KeyChar '\ESC')	= Game size Lose g
+updateGame (Game size (Play w c) g)  (Con.KeyChar 's')   	= Game size (Play w' c) g where w' = smoothMap w
+updateGame (Game size (Play w c) g)  (Con.KeyUp)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirN c
+updateGame (Game size (Play w c) g)  (Con.KeyDown)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirS c
+updateGame (Game size (Play w c) g)  (Con.KeyLeft)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirW c
+updateGame (Game size (Play w c) g)  (Con.KeyRight)			= Game size (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirE c
+updateGame (Game size (Play _ _) g)  _                  	= Game size Win g
+updateGame (Game size Win  g)  (Con.KeyChar '\ESC')  		= Game size Quit g
+updateGame (Game size Win  g)  _                   			= Game size Start g
+updateGame (Game size Lose g)  (Con.KeyChar '\ESC')  		= Game size Quit g
+updateGame (Game size Lose g)  _                   			= Game size Start g
+updateGame game _                                    		= game
 
 
 runGame :: Game -> IO()
 runGame (Game _ Quit _) = do return ()
 runGame game = do
 	updateUI game
-	C.refresh
-	c <- C.getCh
+	Con.updateScreen
+	c <- Con.getKeyPress
 	runGame (updateGame game c)
 
 main = do
-	H.start
-	C.cursSet CursorInvisible
-	(sizeY, sizeX) <- C.scrSize
+	Con.start
+	con <- Con.getConsole
 	g <- getStdGen
-	runGame $ Game (Size sizeX sizeY) Start g
-	H.end
+	runGame $ Game con Start g
+	Con.stop
 
