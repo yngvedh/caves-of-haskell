@@ -1,6 +1,5 @@
 import Prelude hiding (floor, Left, Right)
 import System.Random (getStdGen, StdGen, RandomGen)
-import Control.Monad (when)
 import Common
 import Frame
 import Game
