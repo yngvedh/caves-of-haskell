@@ -4,21 +4,20 @@ module Game (
 		dirN, dirS, dirW, dirE, dirNW, dirNE, dirSW, dirSE,
 		getTile, getAdjacentTiles, smoothMap,
 		mapSection,
-		glyph, color,
+		glyph,
 		worldSize, worldTiles,
 		newWorld, testWorld) where
 
 	import Prelude hiding (floor)
 	import Common
-	import Console (Color(White, Black, Red))
 	import System.Random (randomR, RandomGen)
 
 	data TileKind = Wall | Floor | Bound deriving (Show, Eq)
-	data Tile = Tile { kind :: TileKind, glyph :: Char, color :: Color } deriving (Show, Eq)
+	data Tile = Tile { kind :: TileKind, glyph :: Char} deriving (Show, Eq)
 
-	wall  = Tile Wall  '#' White
-	floor = Tile Floor '.' White
-	bound = Tile Bound 'X' Red
+	wall  = Tile Wall  '#'
+	floor = Tile Floor '.'
+	bound = Tile Bound 'X'
 
 	data World = World { worldSize :: Size, worldTiles :: [[Tile]] } deriving (Show)
 

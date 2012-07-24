@@ -1,54 +1,78 @@
-module Console (Console(Console), Console.Color(White, Black, Red),
-				Console.start, stop, getConsole, consoleSize,
-				clearScreen, updateScreen,
-				fgColor, drawString,
-				getKeyPress,
-				Key(KeyUp, KeyDown, KeyRight, KeyLeft, KeyChar), escapeKey, enterKey) where
-	import UI.HSCurses.Curses as C
-	import UI.HSCurses.CursesHelper as H
-	import Common (Pos(Pos), Size(Size))
+module Console (
+	Console,
+	Cell (..), Buffer,
+	newBuffer,
+	drawChar, drawString,
+	updateConsole,
+	getConsole, releaseConsole,
+	getConsoleSize,
+	nextEvent, Event (..)
+	) where
 
-	data Color = White | Black | Red deriving (Show, Eq)
-	data Console = Console { size :: Size }
+	import Common
+	import qualified Graphics.Vty as Vty
+	import Prelude hiding (Left, Right)
 
-	fgColor White = H.WhiteF
-	fgColor Black = H.BlackF
-	fgColor Red   = H.RedF
+	data Cell = NonEmpty Char | Empty
+	data Buffer = Buffer Size [[Cell]]
+	data Console = Console { vty :: Vty.Vty }
+	data Event = Unknown | Up | Down | Left | Right | Cancel | Key Char | Resize Size
 
-	escapeKey = C.KeyChar '\ESC'
-	enterKey = C.KeyChar '\r'
+	newBuffer size@(Size x y) = Buffer size $ replicate y $ replicate x Empty
+
+	inputFromEvent Vty.KEsc			= Cancel
+	inputFromEvent Vty.KUp			= Up
+	inputFromEvent Vty.KDown		= Down
+	inputFromEvent Vty.KLeft		= Left
+	inputFromEvent Vty.KRight		= Right
+	inputFromEvent (Vty.KASCII c)	= Key c
+
+	nextEvent :: Console -> IO Event
+	nextEvent con = do
+		e <- Vty.next_event $ vty con
+		return $ case e of (Vty.EvKey k _)    -> inputFromEvent k
+		                   (Vty.EvResize x y) -> Resize $ Size (fromEnum x) (fromEnum y)
+		                   _                  -> Unknown
+
+	putCells :: Buffer -> Pos -> [Cell] -> Buffer
+	putCells (Buffer size buf) (Pos x y) cs = Buffer size $ t ++ (newRow : b)
+							  where
+							  	t = take y buf
+							  	row = buf !! y
+							  	b = drop (y+1) buf
+							  	newRow = l ++ cs ++ r where
+							  		l = take x row
+							  		r = drop (x+(length cs)) row
+
+	putCell :: Buffer -> Pos -> Cell -> Buffer
+	putCell buf pos c = putCells buf pos [c]
+
+	imageFromCell :: Cell -> Vty.Image
+	imageFromCell (NonEmpty c) = Vty.char Vty.def_attr c
+	imageFromCell Empty        = Vty.char Vty.def_attr ' '
+	imageFromRow row = Vty.horiz_cat $ map imageFromCell row
+	imageFromBuffer (Buffer _ buf) = Vty.vert_cat $ map imageFromRow $ reverse buf
+
+	updateConsole :: Console -> Buffer -> IO ()
+	updateConsole (Console vty) buffer= do
+		Vty.update vty $ Vty.pic_for_image $ imageFromBuffer buffer
+
+	drawChar :: Pos -> Char -> Buffer -> Buffer
+	drawChar pos c buffer = putCell buffer pos (NonEmpty c)
+
+	drawString :: Pos -> String -> Buffer -> Buffer
+	drawString pos s buffer = putCells buffer pos $ map NonEmpty s
 
 	getConsole :: IO Console
 	getConsole = do
-		(ty, tx) <- scrSize
-		return $ Console $ Size tx ty
+		vty <- Vty.mkVty
+		Vty.hide_cursor $ Vty.terminal vty
+		return $ Console vty
 
-	consoleSize :: Console -> Size
-	consoleSize = size
+	getConsoleSize :: Console -> IO Size
+	getConsoleSize (Console vty) = do
+		Vty.DisplayRegion sx sy <- Vty.display_bounds $ Vty.terminal vty
+		return $ Size (fromEnum sx) (fromEnum sy)
 
-	drawString :: Console -> Pos -> String -> IO ()
-	drawString (Console (Size tx ty)) (Pos x y) s = let
-		l = length s in do
-		if (x >= 0 && y >= 0 && (x + l) <= tx && y <= ty && (not $ y == 0 && (x+l) == tx))
-			then C.mvWAddStr C.stdScr (ty - y - 1) x s 
-			else do
-				clearScreen
-				C.mvWAddStr C.stdScr 0 0 ("Tried to print '" ++ s ++ "' (len:" ++ (show l) ++ ") @" ++ (show (Pos x y)) ++ " size:" ++ (show (Size tx ty)))
-				updateScreen
-				c <- getKeyPress
-				return ()
-
-
-
-	start = do
-		H.start
-		C.cursSet CursorInvisible
-
-	stop = do
-		H.end
-
-	updateScreen = do C.refresh
-
-	clearScreen = do C.erase
-
-	getKeyPress = do C.getCh
+	releaseConsole :: Console -> IO ()
+	releaseConsole con = do Vty.shutdown $ vty con
