@@ -1,8 +1,9 @@
 module Console (
 	Console,
-	Cell (..), Buffer,
+	Cell (..), Buffer, Color (..),
 	newBuffer,
-	drawChar, drawString,
+	drawChar, drawString, drawColorChar,
+	(>>!),
 	updateConsole,
 	getConsole, releaseConsole,
 	getConsoleSize,
@@ -11,9 +12,11 @@ module Console (
 
 	import Common
 	import qualified Graphics.Vty as Vty
+	import Graphics.Vty (with_fore_color, with_style)
 	import Prelude hiding (Left, Right)
 
-	data Cell = NonEmpty Char | Empty
+	data Color = Black | White | Red
+	data Cell = NonEmpty Char Color | Empty
 	data Buffer = Buffer Size [[Cell]]
 	data Console = Console { vty :: Vty.Vty }
 	data Event = Unknown | Up | Down | Left | Right | Cancel | Key Char | Resize Size
@@ -26,6 +29,10 @@ module Console (
 	inputFromEvent Vty.KLeft		= Left
 	inputFromEvent Vty.KRight		= Right
 	inputFromEvent (Vty.KASCII c)	= Key c
+
+	attrFromColor Black = Vty.def_attr `with_fore_color` Vty.black
+	attrFromColor White = Vty.def_attr `with_fore_color` Vty.bright_white
+	attrFromColor Red   = Vty.def_attr `with_fore_color` Vty.bright_red
 
 	nextEvent :: Console -> IO Event
 	nextEvent con = do
@@ -48,7 +55,7 @@ module Console (
 	putCell buf pos c = putCells buf pos [c]
 
 	imageFromCell :: Cell -> Vty.Image
-	imageFromCell (NonEmpty c) = Vty.char Vty.def_attr c
+	imageFromCell (NonEmpty c color) = Vty.char (attrFromColor color) c
 	imageFromCell Empty        = Vty.char Vty.def_attr ' '
 	imageFromRow row = Vty.horiz_cat $ map imageFromCell row
 	imageFromBuffer (Buffer _ buf) = Vty.vert_cat $ map imageFromRow $ reverse buf
@@ -57,11 +64,16 @@ module Console (
 	updateConsole (Console vty) buffer= do
 		Vty.update vty $ Vty.pic_for_image $ imageFromBuffer buffer
 
+	drawColorChar pos color c buffer = putCell buffer pos (NonEmpty c color)
 	drawChar :: Pos -> Char -> Buffer -> Buffer
-	drawChar pos c buffer = putCell buffer pos (NonEmpty c)
+	drawChar pos c = drawColorChar pos White c
+
 
 	drawString :: Pos -> String -> Buffer -> Buffer
-	drawString pos s buffer = putCells buffer pos $ map NonEmpty s
+	drawString pos s buffer = putCells buffer pos $ map (\x -> NonEmpty x White) s
+
+	(>>!) :: Buffer -> (Buffer -> Buffer) -> Buffer
+	buf >>! f = f buf
 
 	getConsole :: IO Console
 	getConsole = do

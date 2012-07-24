@@ -23,7 +23,7 @@ drawMap conSize@(Size sx sy) center (World (Size wx wy) tiles) buf = let
 drawCrosshair (Size sx sy) (Pos x y) worldSize buf = let
 	(Pos x0 y0) = moveRectToFit (Pos x y) (Size sx sy) worldSize
 	pos = Pos (x - x0) (y - y0 + 1)
-	in drawChar pos 'X' buf
+	in drawColorChar pos Red 'X' buf
 
 
 newPlay :: RandomGen g => Size -> g -> (Screen, g)
@@ -38,9 +38,9 @@ messageAt _ [] buf = buf
 
 messageWithInstruction :: Size -> [String] -> String -> Buffer
 messageWithInstruction size@(Size tx ty) messages instruction = 
-								messageAt (Pos msgX msgY) messages $
-								messageAt zeroPos [instruction] $
-								newBuffer size
+								newBuffer size >>!
+								messageAt (Pos msgX msgY) messages >>!
+								messageAt zeroPos [instruction]
 								where
 									msgWidth = foldl max 0 $ map length messages
 									msgX = (tx - msgWidth) `div` 2
@@ -55,10 +55,10 @@ drawUI size (Game Win _) = messageWithInstruction size ["Congratulations, you wi
 drawUI size (Game Lose _) = messageWithInstruction size ["Too bad, you lose..."] "Press any key to restart, escape to quit."
 
 drawUI size@(Size tx ty) (Game (Play world center) _) = 
-	drawCrosshair size center (worldSize world) $
-	drawMap size center world $
-	drawString zeroPos (show center ++ " -> " ++ show (moveRectToFit center (Size tx ty) (worldSize world))) $
-	newBuffer size
+	newBuffer size >>!
+	drawMap size center world >>!
+	drawCrosshair size center (worldSize world) >>!
+	drawString zeroPos (show center ++ " -> " ++ show (moveRectToFit center (Size tx ty) (worldSize world)))
 
 updateGame (Game Start g) _					= Game p g' where (p, g') = newPlay (Size 160 50) g
 updateGame (Game (Play w c) g) Cancel		= Game Lose g
