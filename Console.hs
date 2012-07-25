@@ -75,10 +75,16 @@ module Console (
 	(>>!) :: Buffer -> (Buffer -> Buffer) -> Buffer
 	buf >>! f = f buf
 
+	drawPalette :: Vty.Image
+	drawPalette = Vty.vert_cat $ map drawRow $ map (8*) [0..14] where
+		drawRow n = Vty.horiz_cat $ map (\c -> Vty.char (Vty.def_attr `with_fore_color` (Vty.Color240 $ n + c)) '#') [0..15]
+
 	getConsole :: IO Console
 	getConsole = do
 		vty <- Vty.mkVty
 		Vty.hide_cursor $ Vty.terminal vty
+--		Vty.update vty $ Vty.pic_for_image $ drawPalette
+--		e <- Vty.next_event vty
 		return $ Console vty
 
 	getConsoleSize :: Console -> IO Size
