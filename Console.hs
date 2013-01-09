@@ -11,6 +11,7 @@ module Console (
 	) where
 
 	import Common
+	import Control.Monad.State
 	import qualified Graphics.Vty as Vty
 	import Graphics.Vty (with_fore_color, with_style)
 	import Prelude hiding (Left, Right)
@@ -41,8 +42,8 @@ module Console (
 		                   (Vty.EvResize x y) -> Resize $ Size (fromEnum x) (fromEnum y)
 		                   _                  -> Unknown
 
-	putCells :: Buffer -> Pos -> [Cell] -> Buffer
-	putCells (Buffer size buf) (Pos x y) cs = Buffer size $ t ++ (newRow : b)
+	putCells' :: Buffer -> Pos -> [Cell] -> Buffer
+	putCells' (Buffer size buf) (Pos x y) cs = Buffer size $ t ++ (newRow : b)
 							  where
 							  	t = take y buf
 							  	row = buf !! y
@@ -51,8 +52,11 @@ module Console (
 							  		l = take x row
 							  		r = drop (x+(length cs)) row
 
-	putCell :: Buffer -> Pos -> Cell -> Buffer
-	putCell buf pos c = putCells buf pos [c]
+	putCells :: Pos -> [Cell] -> State Buffer ()
+	putCells pos cells = state $ \buffer -> ((), putCells' buffer pos cells)
+
+	putCell :: Pos -> Cell -> State Buffer ()
+	putCell pos cell = putCells pos [cell]
 
 	imageFromCell :: Cell -> Vty.Image
 	imageFromCell (NonEmpty c color) = Vty.char (attrFromColor color) c
@@ -64,13 +68,13 @@ module Console (
 	updateConsole (Console vty) buffer= do
 		Vty.update vty $ Vty.pic_for_image $ imageFromBuffer buffer
 
-	drawColorChar pos color c buffer = putCell buffer pos (NonEmpty c color)
-	drawChar :: Pos -> Char -> Buffer -> Buffer
+	drawColorChar pos color c = putCell pos (NonEmpty c color)
+	drawChar :: Pos -> Char -> State Buffer ()
 	drawChar pos c = drawColorChar pos White c
 
 
-	drawString :: Pos -> String -> Buffer -> Buffer
-	drawString pos s buffer = putCells buffer pos $ map (\x -> NonEmpty x White) s
+	drawString :: Pos -> String -> State Buffer ()
+	drawString pos s = putCells pos $ map (\x -> NonEmpty x White) s
 
 	(>>!) :: Buffer -> (Buffer -> Buffer) -> Buffer
 	buf >>! f = f buf
