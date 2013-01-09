@@ -7,7 +7,7 @@ run) ./build build
      ;;
 # Compile Sources
 build) echo "compile"
-       ghc --make *.hs -o caves
+       ghc --make *.hs -odir int -hidir int -o caves
        ;;
 # Clean and Compile
 rebuild) ./build clean
@@ -15,8 +15,7 @@ rebuild) ./build clean
          ;;
 # Clean
 clean) echo "clean"
-       rm *.o
-       rm *.hi
+       rm int/*
        rm caves
        ;;
 
