@@ -1,6 +1,6 @@
 module Common (Pos(Pos), Size(Size), zeroPos,
 			   upperLeft, clamp, clampPos, moveRectToFit,
-			   nRandomRs, nRandomLs) where
+			   nRandomRs, nRandomLs, randomL) where
 
 	import System.Random (randomR, RandomGen)
 
@@ -27,3 +27,6 @@ module Common (Pos(Pos), Size(Size), zeroPos,
 
 	nRandomLs :: RandomGen g => Int -> [a] -> g -> ([a], g)
 	nRandomLs n l g = (map (l !!) ns, g') where (ns, g') = nRandomRs n (0, (length l) - 1) g
+
+	randomL :: RandomGen g => [a] -> g -> (a, g)
+	randomL as g = (a, g') where (a:_, g') = nRandomLs 1 as g
