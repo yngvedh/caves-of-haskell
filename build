@@ -6,7 +6,7 @@ run) ./build build
      [ $RETVAL -eq 0 ] && ./caves
      ;;
 # Compile Sources
-build) echo "compile"
+compile) echo "compile"
        ghc --make *.hs -odir int -hidir int -o caves
        ;;
 # Clean and Compile
