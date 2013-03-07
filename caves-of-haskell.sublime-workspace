@@ -164,10 +164,34 @@
 	"buffers":
 	[
 		{
+			"file": "build",
+			"settings":
+			{
+				"buffer_size": 416,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "Console.hs",
+			"settings":
+			{
+				"buffer_size": 3389,
+				"line_ending": "Unix"
+			}
+		},
+		{
 			"file": "Core.hs",
 			"settings":
 			{
-				"buffer_size": 3749,
+				"buffer_size": 3811,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "Game.hs",
+			"settings":
+			{
+				"buffer_size": 2107,
 				"line_ending": "Unix"
 			}
 		}
@@ -175,15 +199,79 @@
 	"build_system": "",
 	"command_palette":
 	{
-		"height": 392.0,
+		"height": 287.0,
 		"selected_items":
 		[
+			[
+				"git re",
+				"Git: Reset (hard) HEAD"
+			],
+			[
+				"stag",
+				"Git: Diff Staged"
+			],
+			[
+				"git un",
+				"Git: Reset (unstage) Current File"
+			],
+			[
+				"git stag",
+				"Git: Diff Staged"
+			],
+			[
+				"git add",
+				"Git: Add Selected Hunk"
+			],
+			[
+				"sta",
+				"Git: Status"
+			],
+			[
+				"stat",
+				"Git: Status"
+			],
+			[
+				"commit",
+				"Git: Commit"
+			],
+			[
+				"status",
+				"Git: Status"
+			],
+			[
+				"add",
+				"Git: Add Current File"
+			],
+			[
+				"push",
+				"Git: Push"
+			],
+			[
+				"commi",
+				"Git: Commit"
+			],
+			[
+				"git st",
+				"Git: Status"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"git",
+				"Git: Status"
+			],
+			[
+				"packa",
+				"Package Control: Discover Packages"
+			]
 		],
-		"width": 404.0
+		"width": 449.0
 	},
 	"console":
 	{
-		"height": 0.0
+		"height": 118.0
 	},
 	"distraction_free":
 	{
@@ -196,6 +284,10 @@
 	},
 	"file_history":
 	[
+		"/Users/yngve/Code/caves-of-haskell/Common.hs",
+		"/Users/yngve/Code/caves-of-haskell/caves-of-haskell.sublime-project",
+		"/Users/yngve/Library/Application Support/Sublime Text 2/Packages/User/MacTerminal.sublime-settings",
+		"/Users/yngve/Code/caves-of-haskell/Core.hs",
 		"/Users/yngve/.bashrc",
 		"/Users/yngve/Code/Puzzles/Euler/lib/seq/seq.test.cpp",
 		"/Users/yngve/Code/Puzzles/Euler/Jamfile",
@@ -252,11 +344,9 @@
 		"/Users/yngve/Code/Sudoku/untitled",
 		"/Users/yngve/Documents/Personlig/Jobbsøknader/Statoil 2012.txt",
 		"/Users/yngve/TestCode/scala/sudoku_solver/ss.scala",
-		"/Users/yngve/Code/caves-of-haskell/Core.hs",
 		"/Users/yngve/Code/caves-of-haskell/Game.hs",
 		"/Users/yngve/Code/caves-of-haskell/Frame.hs",
 		"/Users/yngve/Code/caves-of-haskell/Console.hs",
-		"/Users/yngve/Code/caves-of-haskell/Common.hs",
 		"/Users/yngve/Code/lib/vty/test/Bench.hs",
 		"/Users/yngve/Code/caves-of-haskell/game.hs",
 		"/Users/yngve/Code/caves-of-haskell/core.hs",
@@ -293,6 +383,8 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"Game",
+			"World",
 			"3_digit_numbers",
 			"filter_t",
 			"filter",
@@ -355,15 +447,70 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 3,
 			"sheets":
 			[
 				{
 					"buffer": 0,
+					"file": "build",
+					"settings":
+					{
+						"buffer_size": 416,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								191,
+								191
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C#/Build.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "Console.hs",
+					"settings":
+					{
+						"buffer_size": 3389,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								796,
+								796
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Haskell/Haskell.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 631.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
 					"file": "Core.hs",
 					"settings":
 					{
-						"buffer_size": 3749,
+						"buffer_size": 3811,
 						"regions":
 						{
 						},
@@ -380,7 +527,34 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 3.0,
+						"translation.y": 799.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "Game.hs",
+					"settings":
+					{
+						"buffer_size": 2107,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2107,
+								2107
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Haskell/Haskell.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 85.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -422,6 +596,10 @@
 	"output.exec":
 	{
 		"height": 100.0
+	},
+	"output.git":
+	{
+		"height": 94.0
 	},
 	"replace":
 	{

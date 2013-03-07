@@ -1,0 +1,12 @@
+Name:                CavesOfHaskell
+Version:             0.1
+Description:         A roguelike written in haskell as a learning experience
+Author:              Yngve Devik Hammersland
+Maintainer:          yngve@me.com
+Build-Type:          Simple
+Cabal-Version:       >=1.2
+
+Executable acache
+  Main-is:           Core.hs
+  Build-Depends:     base, mtl, vty, random
+  Other-Modules:     
