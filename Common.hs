@@ -1,6 +1,6 @@
 module Common (Pos(Pos), Size(Size), zeroPos,
 			   upperLeft, clamp, clampPos, moveRectToFit,
-			   nRandomRs, nRandomLs, randomL) where
+			   nRandomLs, randomL) where
 
 	import System.Random (randomR, RandomGen)
 	import Control.Monad (replicateM)
@@ -26,9 +26,6 @@ module Common (Pos(Pos), Size(Size), zeroPos,
 		let (n, g') = randomR r g
 		put g'
 		return n
-
-	nRandomRs :: RandomGen g => Int -> (Int,Int) -> State g [Int]
-	nRandomRs num r = replicateM num $ randomR' r
 
 	randomL :: RandomGen g => [a] -> State g a
 	randomL as = do
