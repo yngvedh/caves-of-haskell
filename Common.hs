@@ -19,17 +19,11 @@ module Common (Pos(Pos), Size(Size), zeroPos,
 		pos0 = upperLeft (Pos x y) (Size dx dy)
 		in clampPos (Pos 0 0)  (Size (boundX - dx + 1) (boundY - dy + 2)) pos0
 
-
-	randomR' :: RandomGen g => (Int,Int) -> State g Int
-	randomR' r = do
-		g <- get
-		let (n, g') = randomR r g
-		put g'
-		return n
-
 	randomL :: RandomGen g => [a] -> State g a
 	randomL as = do
-		n <- randomR' (0, (length as) - 1)
+		g <- get
+		let (n, g') = randomR (0, (length as) - 1) g
+		put g'
 		return $ as !! n
 
 	nRandomLs :: RandomGen g => Int -> [a] -> State g [a]
