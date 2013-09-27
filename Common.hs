@@ -3,6 +3,8 @@ module Common (Pos(Pos), Size(Size), zeroPos,
 			   nRandomRs, nRandomLs, randomL) where
 
 	import System.Random (randomR, RandomGen)
+	import Control.Monad (replicateM)
+	import Control.Monad.State (State, get, put)
 
 
 	data Pos = Pos Int Int deriving (Show, Eq)
@@ -18,15 +20,20 @@ module Common (Pos(Pos), Size(Size), zeroPos,
 		in clampPos (Pos 0 0)  (Size (boundX - dx + 1) (boundY - dy + 2)) pos0
 
 
-	nRandomRs :: RandomGen g => Int -> (Int,Int) -> g -> ([Int], g)
-	nRandomRs 0 r g = ([], g)
-	nRandomRs num r g = let
-		(n,  g')  = randomR r g
-		(ns, g'') = nRandomRs (num-1) r g'
-		in (n:ns, g'')
+	randomR' :: RandomGen g => (Int,Int) -> State g Int
+	randomR' r = do
+		g <- get
+		let (n, g') = randomR r g
+		put g'
+		return n
 
-	nRandomLs :: RandomGen g => Int -> [a] -> g -> ([a], g)
-	nRandomLs n l g = (map (l !!) ns, g') where (ns, g') = nRandomRs n (0, (length l) - 1) g
+	nRandomRs :: RandomGen g => Int -> (Int,Int) -> State g [Int]
+	nRandomRs num r = replicateM num $ randomR' r
 
-	randomL :: RandomGen g => [a] -> g -> (a, g)
-	randomL as g = (a, g') where (a:_, g') = nRandomLs 1 as g
+	randomL :: RandomGen g => [a] -> State g a
+	randomL as = do
+		n <- randomR' (0, (length as) - 1)
+		return $ as !! n
+
+	nRandomLs :: RandomGen g => Int -> [a] -> State g [a]
+	nRandomLs n as = replicateM n $ randomL as

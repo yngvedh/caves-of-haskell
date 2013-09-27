@@ -11,6 +11,8 @@ module Game (
 	import Prelude hiding (floor)
 	import Common
 	import System.Random (randomR, RandomGen)
+	import Control.Monad.State (State)
+	import Control.Monad (replicateM)
 
 	data TileKind = Wall | Floor | Bound deriving (Show, Eq)
 	data Tile = Tile { kind :: TileKind, glyph :: Char} deriving (Show, Eq)
@@ -47,15 +49,14 @@ module Game (
 
 	mapSection tiles x y dx dy = (take dy) . (drop y) $ map ((take dx) . (drop x)) tiles
 
-	newRow :: RandomGen g => Int -> g -> ([Tile], g)
-	newRow dx g = nRandomLs dx [floor, wall] g
+	newRow :: RandomGen g => Int -> State g [Tile]
+	newRow dx = nRandomLs dx [floor, wall]
 
-	newMap :: RandomGen g => Size -> g -> ([[Tile]], g)
-	newMap size g = newMap' size g where
-		newMap' (Size dx dy) g = if dy == 0 then ([], g) else (row:rows, g'') where
-			(row , g' ) = newRow dx g
-			(rows, g'') = newMap' (Size dx (dy-1)) g'
+	newMap :: RandomGen g => Size -> State g [[Tile]]
+	newMap (Size dx dy) = replicateM dx $ newRow dy
 
-	newWorld size g = (World size m, g') where (m, g') = (newMap size g)
+	newWorld :: RandomGen g => Size -> State g World
+	newWorld size = newMap size >>= \m -> return $ World size m
+
 	testWorld (Size x y) g = (World (Size x y) tiles, g) where
 		tiles = (replicate x wall) : (replicate (y-2) (wall : (replicate (x-2) floor) ++ [wall])) ++ [replicate x wall]

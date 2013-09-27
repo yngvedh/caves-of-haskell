@@ -31,11 +31,11 @@ drawCrosshair (Size sx sy) (Pos x y) worldSize = let
 	in drawColorChar pos Red 'X'
 
 
-newPlay :: RandomGen g => Size -> g -> (Screen, g)
-newPlay (Size wx wy) g = ((Play w c), g') where 
-		(w, g') = newWorld (Size wx wy) g
-		c = Pos (wx `div` 2) (wy `div` 2)
-
+newPlay :: RandomGen g => Size -> State g Screen
+newPlay size@(Size wx wy) = do
+	world <- newWorld size
+	let startPos = Pos (wx `div` 2) (wy `div` 2)
+	return $ Play world startPos
 
 messageAt :: Pos -> [String] -> State Buffer ()
 messageAt pos@(Pos x y) (msg:msgs) = do
@@ -78,7 +78,7 @@ drawUI size game =
 	snd $ runState (drawUI' size game) $ newBuffer size
 
 
-updateGame (Game Start g) _					= Game p g' where (p, g') = newPlay (Size 160 50) g
+updateGame (Game Start g) _					= Game p g' where (p, g') = runState (newPlay (Size 160 50)) g
 updateGame (Game (Play w c) g) Cancel		= Game Lose g
 updateGame (Game (Play w c) g) (Key 's')	= Game (Play w' c) g where w' = smoothMap w
 updateGame (Game (Play w c) g) Up			= Game (Play w c') g where c' = clampPos zeroPos (worldSize w) $ dirN c
